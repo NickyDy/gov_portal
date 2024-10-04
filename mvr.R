@@ -23,7 +23,7 @@ weekdays_2024 <- read_csv("https://data.egov.bg/resource/download/b1f62ff6-b1e1-
                                         "ПТП (четвъртък)", "Загинали (четвъртък)", "Ранени (четвъртък)",
                                         "ПТП (петък)", "Загинали (петък)", "Ранени (петък)", 
                                         "ПТП (събота)", "Загинали (събота)", "Ранени (събота)",
-                                        "ПТП (наделя)", "Загинали (наделя)", "Ранени (наделя)", 
+                                        "ПТП (неделя)", "Загинали (неделя)", "Ранени (неделя)", 
                                         "ПТП (общо)", "Загинали (общо)", "Ранени (общо)"), 
                           skip = 1)
 obl_months_2024 <- read_csv("https://data.egov.bg/resource/download/1584ca0c-7936-4389-88a5-81a304ae8e03/csv",
@@ -77,7 +77,7 @@ obl_2024 %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("Загинали" = "black", "Ранени" = "red", "ПТП" = "orange")) +
   theme(text = element_text(size = 16)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name))
 
 obl_2024 %>% 
@@ -110,7 +110,7 @@ weekdays_2024 %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("2" = "black", "0" = "orange", "1" = "red")) +
   theme(text = element_text(size = 16)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name), nrow = 1)
 
 weekdays_2024 %>% 
@@ -127,7 +127,7 @@ weekdays_2024 %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("2" = "black", "0" = "orange", "1" = "red")) +
   theme(text = element_text(size = 16)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name), nrow = 1)
 
 weekdays_2024 %>% 
@@ -144,7 +144,7 @@ weekdays_2024 %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("2" = "black", "0" = "orange", "1" = "red")) +
   theme(text = element_text(size = 16)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name), nrow = 1)
 
 weekdays_2024 %>% 
@@ -159,7 +159,7 @@ weekdays_2024 %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("Загинали (общо)" = "black", "Ранени (общо)" = "red", "ПТП (общо)" = "orange")) +
   theme(text = element_text(size = 16)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name), nrow = 1)
 
 df_months <- inner_join(obl_months_2024, ptp_months_2024)
@@ -195,7 +195,7 @@ df_months %>%
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
   scale_fill_manual(values = c("1" = "black", "0" = "red", "2" = "orange")) +
   theme(text = element_text(size = 10)) +
-  labs(x = "Брой", y = NULL) +
+  labs(x = "Брой", y = NULL, title = "Януари-Юни, 2024 г.") +
   facet_wrap(vars(name), nrow = 3)
 #---------------------------------
 ptp %>% 
