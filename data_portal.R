@@ -1,6 +1,6 @@
 library(tidyverse)
-library(scales)
 library(jsonlite)
+library(scales)
 
 space_s <- function (x, accuracy = NULL, scale = 1, prefix = "", suffix = "", 
                      big.mark = " ", decimal.mark = ".", trim = TRUE, digits, 
@@ -69,3 +69,13 @@ sub_2023 %>% filter(oblast == "Ямбол") %>%
   labs(x = "Обща сума (лв)", y = NULL, fill = "Област:") +
   facet_wrap(vars(mqrka), nrow = 1) +
   guides(fill = guide_legend(nrow = 2))
+
+lekari <- fromJSON("https://data.egov.bg/resource/download/65bdde36-4f0e-4b7a-b2ca-77bd47a022a4/json") %>% as_tibble() %>% 
+  janitor::row_to_names(row_number = 1)
+
+koncesii <- read_csv("gov_portal/konces.csv")
+
+
+
+
+
