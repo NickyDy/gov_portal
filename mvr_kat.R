@@ -1,5 +1,105 @@
 library(tidyverse)
+library(tidytext)
 
+ptp_oblasti_2024 <- read_csv("https://data.egov.bg/resource/download/1ca5aa84-99dd-4eef-8530-8e73e7c72b05/csv")
+
+tot <- ptp_oblasti %>% 
+  #select(Области, contains("2024")) %>% 
+  pivot_longer(-Области) %>% 
+  filter(Области != "Общо", !str_detect(name, "^Разлика")) %>% 
+  mutate(value = as.numeric(value)) %>% 
+  summarise(total = sum(value), .by = name)
+
+ptp_oblasti %>% 
+  #select(Области, contains("2024")) %>% 
+  pivot_longer(-Области) %>% 
+  filter(Области != "Общо", str_detect(name, "^Разлика"), !str_detect(name, "%")) %>%
+  #separate_wider_delim(name, delim = ", ", names = c("name", "year")) %>% 
+  mutate(value = as.numeric(value), 
+         name = fct_inorder(name),
+         col = Области,
+         Области = reorder_within(Области, value, name),
+         col = value > 0) %>% 
+  ggplot(aes(value, Области, fill = col)) +
+  geom_col(position = "dodge", show.legend = F) +
+  scale_x_continuous(expand = expansion(mult = c(.01, .15))) +
+  #scale_fill_manual(values = c("2023 г." = "")) +
+  scale_y_reordered() +
+  geom_text(aes(label = value), 
+            position = position_dodge(width = 1), 
+            hjust = -0.1, size = 14, size.unit = "pt") +
+  theme(text = element_text(size = 16), legend.position = "top") +
+  labs(x = "Брой", y = NULL) +
+  facet_wrap(vars(name), scales = "free_y")
+
+ptp_hour_weekday <- read_csv("https://data.egov.bg/resource/download/88b7b828-fcb5-4a01-b1a5-a7ae586e2075/csv")
+
+ptp_hour_weekday %>% 
+  pivot_longer(-`Часови интервали`) %>%
+  filter(`Часови интервали` != "Общо", !str_detect(name, "общо")) %>%
+  mutate(`Часови интервали` = fct_collapse(`Часови интервали`,
+                                           "От 00:00 До 06:59" = c("От 00 До 00:59", "От 01 До 01:59", "От 02 До 02:59", "От 03 До 03:59",
+                                                                   "От 04 До 04:59", "От 05 До 05:59", "От 06 До 06:59"),
+                                           "От 07:00 До 11:59" = c("От 07 До 07:59", "От 08 До 08:59", "От 09 До 09:59", "От 10 До 10:59",
+                                                                   "От 11 До 11:59"),
+                                           "От 12:00 До 17:59" = c("От 12 До 12:59", "От 13 До 13:59", "От 14 До 14:59", "От 15 До 15:59",
+                                                                   "От 16 До 16:59", "От 17 До 17:59"),
+                                           "От 18:00 До 23:59" = c("От 18 До 18:59", "От 19 До 19:59", "От 20 До 20:59", "От 21 До 21:59",
+                                                                   "От 22 До 22:59", "От 23 До 23:59")),
+         value = as.numeric(value),
+         `Часови интервали` = fct_rev(`Часови интервали`)) %>%
+  summarise(value = sum(value), .by = c(`Часови интервали`, name)) %>%
+  separate_wider_delim(name, delim = " - ", names = c("type", "name")) %>% 
+  mutate(name = fct_relevel(name, "понеделник", "вторник", "сряда",
+                            "четвъртък", "петък", "събота", "неделя"),
+         type = fct_relevel(type, "ПТП", "Ранени", "Загинали")) %>%
+  ggplot(aes(value, `Часови интервали`, fill = type)) +
+  geom_col(show.legend = F, position = "dodge") +
+  geom_text(aes(label = value), 
+            position = position_dodge(width = 1), 
+            hjust = -0.1, size = 14, size.unit = "pt") +
+  scale_x_continuous(expand = expansion(mult = c(.01, .2))) +
+  scale_fill_manual(values = c("ПТП" = "orange", 
+                               "Ранени" = "red",
+                               "Загинали" = "black")) +
+  theme(text = element_text(size = 14)) +
+  labs(x = "Брой", y = NULL) +
+  facet_grid(type ~ name)
+
+road_type_2024 <- read_csv("https://data.egov.bg/resource/download/229913ce-d6ea-41eb-95a6-002453b5049c/csv")
+
+glimpse(road_type)
+
+road_type_2024 %>% 
+  mutate(across(-`Вид на пътя`, as.numeric)) %>% 
+  mutate(ПТП = `ПТП бр., 2024 г.` - `ПТП бр., 2023 г.`,
+         Загинали = `Загинали бр., 2024 г.` - `Загинали бр., 2023 г.`,
+         Ранени = `Ранени бр., 2024 г.` - `Ранени бр., 2023 г.`) %>% 
+  select(`Вид на пътя`, ПТП, Загинали, Ранени) %>% 
+  pivot_longer(-`Вид на пътя`) %>% 
+  filter(`Вид на пътя` != "Общо") %>% 
+  mutate(col = `Вид на пътя`, col = value > 0, 
+         `Вид на пътя` = reorder_within(`Вид на пътя`, value, name),
+         name = factor(name, levels = c("ПТП", "Ранени", "Загинали"))) %>% 
+  ggplot(aes(value, `Вид на пътя`, fill = col)) +
+  geom_col(position = "dodge", show.legend = F) +
+  scale_x_continuous(expand = expansion(mult = c(.01, .15))) +
+  #scale_fill_manual(values = c("2023 г." = "")) +
+  scale_y_reordered() +
+  geom_text(aes(label = value), 
+            position = position_dodge(width = 1), 
+            hjust = -0.1, size = 14, size.unit = "pt") +
+  theme(text = element_text(size = 16), legend.position = "top") +
+  labs(x = "Брой", y = NULL) +
+  facet_wrap(vars(name), scales = "free_y")
+
+age_2024 <- read_csv("https://data.egov.bg/resource/download/956d2999-35ba-42b7-bb02-da7bc8bd4f92/csv")
+ptp_obl_months_2024 <- read_csv("https://data.egov.bg/resource/download/627f535d-f2a1-4ace-88ff-ff4f94f147f8/csv")
+injured_obl_months_2024 <- read_csv("https://data.egov.bg/resource/download/d45b5389-38b5-46ab-af03-9a1f2033ec3b/csv")
+
+
+
+#-------------------------------------------------------------------------------------------------
 ptp <- read_csv("https://data.egov.bg/resource/download/b0ef6d47-def9-4573-902e-c25170defd4f/csv")
 ptp2 <- read_csv("https://data.egov.bg/resource/download/a2bd53fb-d6e9-496c-b36b-2fa30e2a0944/csv")
 ptp_age <- read_csv("https://data.egov.bg/resource/download/fec9a876-500c-43c5-a269-2e059cf549e3/csv")
@@ -50,22 +150,24 @@ age_jan_june_2024 %>%
   labs(x = "Брой", y = NULL) +
   facet_wrap(vars(name))
 
-road_type_jan_june_2024 %>% 
-  pivot_longer(2:7) %>% 
-  filter(!str_detect(name, "%"), !road_type == "Общо") %>%
-  mutate(road_type = fct_reorder(road_type, value),
-         name = fct_relevel(name, "ПТП", "Ранени", "Загинали")) %>% 
-  ggplot(aes(value, road_type, fill = name)) +
-  geom_col(show.legend = F) +
+road_type_2024 %>% 
+  pivot_longer(2:7) %>%
+  filter(!str_detect(name, "%"), !`Вид на пътя` == "Общо") %>%
+  mutate(`Вид на пътя` = fct_reorder(`Вид на пътя`, value),
+         name = fct_relevel(name, "ПТП бр., 2024 г.", "Ранени бр., 2024 г.", "Загинали бр., 2024 г.")) %>% 
+  ggplot(aes(value, `Вид на пътя`, fill = name)) +
+  geom_col(show.legend = F, position = "dodge") +
   geom_text(aes(label = value), 
             position = position_dodge(width = 1), hjust = -0.05, size = 14, size.unit = "pt") +
   scale_x_continuous(expand = expansion(mult = c(.01, .1))) +
-  scale_fill_manual(values = c("Загинали" = "black", "Ранени" = "red", "ПТП" = "orange")) +
+  scale_fill_manual(values = c("Загинали бр., 2024 г." = "black", 
+                               "Ранени бр., 2024 г." = "red", 
+                               "ПТП бр., 2024 г." = "orange")) +
   theme(text = element_text(size = 16)) +
   labs(x = "Брой", y = NULL) +
   facet_wrap(vars(name))
 
-obl_2024 %>% 
+ptp_oblasti %>% 
   pivot_longer(2:4) %>%
   filter(!obl == "Общо") %>%
   mutate(name = fct_relevel(name, "ПТП", "Ранени", "Загинали"),
@@ -287,31 +389,4 @@ ptp_road %>%
   theme(text = element_text(size = 16)) +
   labs(x = "Брой", y = NULL) +
   facet_wrap(vars(name))
-
-library(tidytext)
-
-mvr_stats <- read_csv("data/pol_stats.csv") %>% mutate(crimes_100000_people = round(crimes_100000_people, 1),
-                                                       percent_solved = round(percent_solved, 1))
-glimpse(mvr_stats)
-
-mvr_stats %>% 
-  filter(!location == "Общо за Р България", 
-         #str_detect(crime_types, "убийство|Убийство"),
-         crime_types == "Убийство (чл.115-127 НК)") %>%
-  mutate(location = reorder_within(location, percent_solved, crime_types)) %>%
-  filter(percent_solved > 0) %>% 
-  ggplot(aes(percent_solved, location, fill = percent_solved)) +
-  geom_col(show.legend = F) +
-  geom_text(aes(label = percent_solved), 
-            position = position_dodge(width = 1), 
-            hjust = -0.1, size = 14, size.unit = "pt") +
-  scale_y_reordered() +
-  scale_x_continuous(expand = expansion(mult = c(.01, .2))) +
-  scale_fill_gradient(low = "red", high = "white") +
-  labs(y = NULL, x = "Процент разкрити престъпления", 
-       title = "Полицейска статистика за 2023 година!",
-       caption = "Източник на данните: МВР") +
-  theme(text = element_text(size = 18)) +
-  facet_wrap(vars(crime_types), scales = "free_y", nrow = 2, 
-             #labeller = labeller(crime_types = label_wrap_gen(40))
-  )
+#------------------------------------------------------------------
