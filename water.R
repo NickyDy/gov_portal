@@ -1,43 +1,31 @@
 library(tidyverse)
 library(scales)
 
-zaustvane <- read_csv("https://data.egov.bg/resource/download/becf1f8f-14d2-44c6-87ce-28d35389e2ee/csv")
-vodovzemane <- read_csv("https://data.egov.bg/resource/download/00f66760-2ac9-42b9-bfa9-33f7c7d9d924/csv")
-glimpse(migr)
+und_2024 <- read_csv("2024 г. - Подземни води - Обща физикохимия.csv", col_names = F) %>% 
+  mutate(across(is.numeric, as.character))
 
-vod <- vodovzemane %>% 
-  select(name = `Титуляр Име`, lat = `Десетични координати N`, long = `Десетични координати E`) %>% 
-  mutate(lat = as.numeric(lat), long = as.numeric(long)) %>% drop_na()
+dun_2024 <- read_csv("Басейнова дирекция - Дунавски район.csv", col_names = F)
+black_2024 <- read_csv("Басейнова дирекция - Черноморски район.csv", col_names = F)
+west_2024 <- read_csv("Басейнова дирекция - Западнобеломорски район.csv", col_names = F)
+east_2024 <- read_csv("Басейнова дирекция - Източнобеломорски район.csv", col_names = F)
 
-surf_water_east <- read_csv("https://data.egov.bg/resource/download/4adad97f-0859-43fb-8c66-6100d7656dad/csv",
-                            col_names = F)
-surf_water_west <- read_csv("https://data.egov.bg/resource/download/11c55246-122e-43d7-a731-7ace1a6a231c/csv",
-                            col_names = F)
-surf_water_black <- read_csv("https://data.egov.bg/resource/download/8f5979d8-1447-41c4-b677-3981976f987e/csv",
-                             col_names = F)
-surf_water_dun <- read_csv("https://data.egov.bg/resource/download/50a4d414-a388-49e1-ba90-24ec61e8bf07/csv",
-                           col_names = F)
-surf_water <- bind_rows(surf_water_east, surf_water_west, surf_water_black, surf_water_dun)
+surf <- bind_rows(dun_2024, black_2024, west_2024, east_2024)
 
-under_water <- read_csv("data/under_water.csv",
-                        col_names = F) %>% mutate(across(is.double, as.character))
-
-und_water <- under_water %>%
+under_new <- und_2024 %>%
   #slice(-c(1:1)) %>% 
   rownames_to_column() %>%
   pivot_longer(-rowname) %>%
   pivot_wider(names_from = rowname, values_from = value) %>%
   unite("united", 2:5, sep = "_") %>%
+  filter(!str_detect(united, "^NA")) %>%
   rownames_to_column() %>%
   pivot_longer(-rowname) %>%
   pivot_wider(names_from = rowname, values_from = value) %>%
   select(!name) %>%
   slice(-c(1:1)) %>%
-  #mutate(`1` = str_replace(`1`, "__", "obshtina")) %>%
   janitor::row_to_names(row_number = 1) %>%
-  pivot_longer(14:105, names_to = "name", values_to = "value") %>%
+  pivot_longer(15:37, names_to = "name", values_to = "value") %>%
   separate(name, c("pokazatel", "m_edinica", "standart", "izmervane"), sep = "_") %>%
-  filter(!izmervane == "Метод") %>% 
   mutate(value = parse_number(value)) %>% 
   drop_na(value) %>% 
   select(basin = `Басейнов район_NA_NA_NA`, code = `Код на ПВТ_NA_NA_NA`,
@@ -50,16 +38,21 @@ und_water <- under_water %>%
   mutate(long = parse_number(long),
          lat = parse_number(lat),
          standart = parse_number(standart),
-         date = ymd(date))
+         date = ymd(date),
+         year = year(date))
 
-underground_water <- und_water %>% 
+under <- under_new %>% 
   mutate(m_edinica = str_replace(m_edinica, "\\?C", "\u00B0C")) %>%
   filter(value > 0, izmervane == "Изм.ст-ст") %>% 
-  select(basin, oblast, obshtina, sett, site_name, lat, long, date,
+  select(basin, oblast, obshtina, sett, site_name, lat, long, date, year,
          pokazatel, m_edinica, standart, izmervane, value) %>% 
   drop_na(standart)
 
-write_parquet(underground_water, "shiny/und_water/underground_water.parquet")
+under_old <- read_rds("shiny/und_water/underground_water.rds") %>% 
+  mutate(year = year(date))
+under_df <- bind_rows(under, under_old)
+
+write_rds(under_df, "shiny/und_water/under_df.rds")
 
 und_water %>% filter(value > standart * 10 & izmervane == "Изм.ст-ст", date > "2023-07-01") %>%
   mutate(site_name = fct_reorder(site_name, value)) %>% 
@@ -90,7 +83,7 @@ und_water %>%
   facet_wrap(vars(site_name), ncol = 6, labeller = labeller(site_name = label_wrap_gen(35)))
 
 
-surf_water <- surf_water %>%
+surf_water <- surf %>%
   #slice(-c(1:1)) %>% 
   rownames_to_column() %>%
   pivot_longer(-rowname) %>%
@@ -101,10 +94,9 @@ surf_water <- surf_water %>%
   pivot_wider(names_from = rowname, values_from = value) %>%
   select(!name) %>%
   slice(-c(1:1)) %>%
-  #mutate(`1` = str_replace(`1`, "__", "obshtina")) %>%
   janitor::row_to_names(row_number = 1) %>%
-  pivot_longer(8:177, names_to = "name", values_to = "value") %>%
-  #separate(name, c("year", "settlement", "sex"), sep = "_") %>%
+  pivot_longer(8:198, names_to = "name", values_to = "value") %>%
+  separate(name, c("index", "m_edinica"), sep = "_") %>%
   #mutate(value = parse_number(value)) %>% 
   drop_na(value)
 
@@ -112,39 +104,38 @@ surf_water <- surf_water %>%
   select(basin = `Басейнова дирекция_NA`, site_code_iaos = `Код на пункта в ИАОС_NA`,
          site_code = `Код на пункта_NA`, site_name = `Име на пункта_NA`,
          water_source = `Воден ресурс_NA`, date = `Дата на пробовземане_NA`,
-         hour = `Час на пробовземане_NA`, index = name, value) %>% 
+         hour = `Час на пробовземане_NA`, index, m_edinica, value) %>% 
   mutate(value = parse_number(value), date = dmy(date)) %>% 
   filter(value > 0) %>% drop_na(value)
 
-glimpse(und_water)
-surf_waters %>% count(basin) %>% view
-surf_waters %>% count(site_name, sort = T) %>% view
-
 surf_water <- surf_water %>%
   mutate(pdk = case_when(
-    index == "Активна реакция рН - pH_-" ~ 7.5,
-    index == "Електропроводимост_µS/cm" ~ 900,
-    index == "Разтворен кислород_mg/l" ~ 5,
-    index == "БПК5 - BOD5_mg/l" ~ 5,
-    index == "Азот амониев - N-NH4_mg/l" ~ 0.65,
-    index == "Азот нитритен - N-NO2_mg/l" ~ 0.06,
-    index == "Азот нитратен - N-NO3_mg/l" ~ 2.5,
-    index == "Ортофосфати (като Р) - PO4-P_mg/l" ~ 0.15)) %>% 
+    index == "Активна реакция рН - pH" ~ 7.5,
+    index == "Електропроводимост" ~ 900,
+    index == "Разтворен кислород" ~ 5,
+    index == "БПК5 - BOD5" ~ 5,
+    index == "Азот амониев - N-NH4" ~ 0.65,
+    index == "Азот нитритен - N-NO2" ~ 0.06,
+    index == "Азот нитратен - N-NO3" ~ 2.5,
+    index == "Ортофосфати (като Р) - PO4-P" ~ 0.15)) %>% 
   mutate(col = case_when(
-    index == "Активна реакция рН - pH_-" & value < pdk & value > pdk ~ "1",
-    index == "Електропроводимост_µS/cm" & value > pdk ~ "1",
-    index == "Разтворен кислород_mg/l" & value < pdk ~ "1",
-    index == "БПК5 - BOD5_mg/l" & value > pdk ~ "1",
-    index == "Азот амониев - N-NH4_mg/l" & value > pdk ~ "1",
-    index == "Азот нитритен - N-NO2_mg/l" & value > pdk ~ "1",
-    index == "Азот нитратен - N-NO3_mg/l" & value > pdk ~ "1",
-    index == "Ортофосфати (като Р) - PO4-P_mg/l" & value > pdk ~ "1", .default = "0"))
+    index == "Активна реакция рН - pH" & value < pdk & value > pdk ~ "1",
+    index == "Електропроводимост" & value > pdk ~ "1",
+    index == "Разтворен кислород" & value < pdk ~ "1",
+    index == "БПК5 - BOD5" & value > pdk ~ "1",
+    index == "Азот амониев - N-NH4" & value > pdk ~ "1",
+    index == "Азот нитритен - N-NO2" & value > pdk ~ "1",
+    index == "Азот нитратен - N-NO3" & value > pdk ~ "1",
+    index == "Ортофосфати (като Р) - PO4-P" & value > pdk ~ "1", .default = "0"))
 
-surf_water %>% count(basin) %>% view
 surf_water <- surf_water %>% filter(!basin == "Басейнова дирекция") %>% 
-  select(basin, site_name, date, index, pdk, col, value) %>% 
+  select(basin, site_name, date, index, m_edinica, pdk, col, value) %>% 
   drop_na(pdk)
-write_parquet(surf_water, "shiny/und_water/surf_water.parquet")
+
+surf_df <- bind_rows(surf_water, surf_old)
+
+surf_old <- read_rds("shiny/und_water/surf_water.rds")
+write_rds(surf_df, "shiny/und_water/surf_df.rds")
 
 surf_water %>% 
   filter(site_name %in% c('р. Тунджа на моста за с. Срем'),
