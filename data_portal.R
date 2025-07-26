@@ -1,6 +1,7 @@
 library(tidyverse)
 library(jsonlite)
 library(scales)
+library(nanoparquet)
 
 space_s <- function (x, accuracy = NULL, scale = 1, prefix = "", suffix = "", 
                      big.mark = " ", decimal.mark = ".", trim = TRUE, digits, 
@@ -74,6 +75,57 @@ lekari <- fromJSON("https://data.egov.bg/resource/download/65bdde36-4f0e-4b7a-b2
   janitor::row_to_names(row_number = 1)
 
 koncesii <- read_csv("gov_portal/konces.csv")
+#-------------------------------------------
+stock_market0 <- read_csv("https://data.egov.bg/resource/download/407f3577-dbd3-40a5-96f3-513427354c7f/csv", 
+                         col_names = c("product", "unit", "base", 
+                                       "2025-06-23", "change_perc_07_07", "change_lv_07_07",
+                                       "2025-06-24", "change_perc_07_08", "change_lv_07_08",
+                                       "2025-06-25", "change_perc_07_09", "change_lv_07_09",
+                                       "2025-06-26", "change_perc_07_10", "change_lv_07_10",
+                                       "2025-06-27", "change_perc_07_11", "change_lv_07_11"), skip = 1) %>% 
+  select(1:2, contains("2025")) %>% pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
+  mutate(unit = str_remove(unit, ","), date = ymd(date))
+
+stock_market1 <- read_csv("https://data.egov.bg/resource/download/0442d438-2a74-4210-ac16-e9ed76436de0/csv",
+                          col_names = c("product", "unit", "base", 
+                                       "2025-07-07", "change_perc_07_07", "change_lv_07_07",
+                                       "2025-07-08", "change_perc_07_08", "change_lv_07_08",
+                                       "2025-07-09", "change_perc_07_09", "change_lv_07_09",
+                                       "2025-07-10", "change_perc_07_10", "change_lv_07_10",
+                                       "2025-07-11", "change_perc_07_11", "change_lv_07_11"), skip = 3) %>% 
+  select(1:2, contains("2025")) %>% pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
+  mutate(unit = str_remove(unit, ","), date = ymd(date))
+
+df <- read_parquet("shiny/stock_market/df.parquet")
+
+df <- bind_rows(stock_market0, stock_market1)
+
+glimpse(stock_market)
+
+df %>% 
+  filter(date %in% c("2025-06-23", "2025-07-11")) %>%
+  summarise(price_change = (last(price, na_rm = T) - first(price, na_rm = T)) / first(price, na_rm = T), 
+            .by = c(unit, product)) %>% 
+  filter(price_change != 0) %>%
+  mutate(product = fct_reorder(product, price_change)) %>% 
+  ggplot(aes(price_change, product, fill = price_change > 0)) +
+  geom_col(show.legend = F) +
+  geom_text(aes(label = paste0(round(price_change * 100, 2), "%")), hjust = -0.03) +
+  scale_x_continuous(expand = expansion(mult = c(0.01, 0.1))) +
+  theme(text = element_text(size = 16), axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank()) +
+  labs(x = NULL, y = NULL)
+
+df %>% 
+  filter(product == 'Кашкавал "Витоша"') %>% 
+  ggplot(aes(date, price)) +
+  geom_line(linetype = 2, linewidth = 0.3) +
+  geom_point(size = 2) +
+  theme(text = element_text(size = 16)) +
+  labs(x = "Дата", y = "Цена (лв)")
+
+write_parquet(df, "shiny/stock_market/df.parquet")
+
 
 
 
