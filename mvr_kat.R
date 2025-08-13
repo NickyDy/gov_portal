@@ -96,9 +96,6 @@ road_type_2024 %>%
 age_2024 <- read_csv("https://data.egov.bg/resource/download/956d2999-35ba-42b7-bb02-da7bc8bd4f92/csv")
 ptp_obl_months_2024 <- read_csv("https://data.egov.bg/resource/download/627f535d-f2a1-4ace-88ff-ff4f94f147f8/csv")
 injured_obl_months_2024 <- read_csv("https://data.egov.bg/resource/download/d45b5389-38b5-46ab-af03-9a1f2033ec3b/csv")
-
-
-
 #-------------------------------------------------------------------------------------------------
 ptp <- read_csv("https://data.egov.bg/resource/download/b0ef6d47-def9-4573-902e-c25170defd4f/csv")
 ptp2 <- read_csv("https://data.egov.bg/resource/download/a2bd53fb-d6e9-496c-b36b-2fa30e2a0944/csv")
