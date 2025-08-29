@@ -76,56 +76,26 @@ lekari <- fromJSON("https://data.egov.bg/resource/download/65bdde36-4f0e-4b7a-b2
 
 koncesii <- read_csv("gov_portal/konces.csv")
 #-------------------------------------------
-stock_market0 <- read_csv("https://data.egov.bg/resource/download/407f3577-dbd3-40a5-96f3-513427354c7f/csv", 
-                         col_names = c("product", "unit", "base", 
-                                       "2025-06-23", "change_perc_07_07", "change_lv_07_07",
-                                       "2025-06-24", "change_perc_07_08", "change_lv_07_08",
-                                       "2025-06-25", "change_perc_07_09", "change_lv_07_09",
-                                       "2025-06-26", "change_perc_07_10", "change_lv_07_10",
-                                       "2025-06-27", "change_perc_07_11", "change_lv_07_11"), skip = 1) %>% 
-  select(1:2, contains("2025")) %>% pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
-  mutate(unit = str_remove(unit, ","), date = ymd(date))
 
-stock_market1 <- read_csv("https://data.egov.bg/resource/download/0442d438-2a74-4210-ac16-e9ed76436de0/csv",
+stock_market <- read_csv("https://data.egov.bg/resource/download/515af28a-767d-403c-a6ae-6a3d3e7d4909/csv",
                           col_names = c("product", "unit", "base", 
-                                       "2025-07-07", "change_perc_07_07", "change_lv_07_07",
-                                       "2025-07-08", "change_perc_07_08", "change_lv_07_08",
-                                       "2025-07-09", "change_perc_07_09", "change_lv_07_09",
-                                       "2025-07-10", "change_perc_07_10", "change_lv_07_10",
-                                       "2025-07-11", "change_perc_07_11", "change_lv_07_11"), skip = 3) %>% 
-  select(1:2, contains("2025")) %>% pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
-  mutate(unit = str_remove(unit, ","), date = ymd(date))
-
-stock_market2 <- read_csv("https://data.egov.bg/resource/download/6f60f738-f47e-454b-ab49-593c3089b0bd/csv",
-                          col_names = c("product", "unit", "base", 
-                                        "2025-07-21", "change_perc_07_07", "change_lv_07_07",
-                                        "2025-07-22", "change_perc_07_08", "change_lv_07_08",
-                                        "2025-07-23", "change_perc_07_09", "change_lv_07_09",
-                                        "2025-07-24", "change_perc_07_10", "change_lv_07_10",
-                                        "2025-07-25", "change_perc_07_11", "change_lv_07_11"), skip = 3) %>% 
-  select(1:2, contains("2025")) %>% pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
-  mutate(unit = str_remove(unit, ","), date = ymd(date))
-
-stock_market3 <- read_csv("https://data.egov.bg/resource/download/c49e482a-bb0c-4ebe-aaba-19a02cab78fc/csv",
-                          col_names = c("product", "unit", "base", 
-                                        "2025-08-04", "change_perc_07_07", "change_lv_07_07",
-                                        "2025-08-05", "change_perc_07_08", "change_lv_07_08",
-                                        "2025-08-06", "change_perc_07_09", "change_lv_07_09",
-                                        "2025-08-07", "change_perc_07_10", "change_lv_07_10",
-                                        "2025-08-08", "change_perc_07_11", "change_lv_07_11"), skip = 3) %>% 
+                                        "2025-08-11", "change_perc_07_07", "change_lv_07_07",
+                                        "2025-08-12", "change_perc_07_08", "change_lv_07_08",
+                                        "2025-08-13", "change_perc_07_09", "change_lv_07_09",
+                                        "2025-08-14", "change_perc_07_10", "change_lv_07_10",
+                                        "2025-08-15", "change_perc_07_11", "change_lv_07_11"), skip = 3) %>% 
   select(1:2, contains("2025")) %>% slice(1:32) %>% 
   pivot_longer(3:7, names_to = "date", values_to = "price") %>% 
   mutate(unit = str_remove(unit, ","), date = ymd(date), price = as.numeric(price))
 
 
-
 df <- read_parquet("shiny/bgprices/df_market.parquet")
 
-df <- bind_rows(df, stock_market3)
+df <- bind_rows(df, stock_market)
 
 write_parquet(df, "shiny/bgprices/df_market.parquet")
 
-glimpse(stock_market3)
+glimpse(stock_market)
 
 df %>% 
   filter(date %in% c("2025-06-23", "2025-07-11")) %>%
